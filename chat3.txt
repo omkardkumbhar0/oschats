@@ -1,0 +1,1187 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .text-right {
+            text-align: right;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .list-group-item.text-right {
+            background-color: #e6f7ff;
+            margin-left: auto;
+            border-radius: 15px 15px 0 15px;
+        }
+        .list-group-item.text-left {
+            background-color: #f0f0f0;
+            margin-right: auto;
+            border-radius: 15px 15px 15px 0;
+        }
+        .selected {
+            background-color: #ff7272;
+            transition: background-color 0.3s ease-in-out;
+        }
+        #chat-body {
+            height: 65vh; /* Set the height to 80% of the viewport height */
+            overflow-y: auto;
+        }
+        @media (max-width: 767px) {
+            .navbar-brand, .nav-link, .btn {
+                font-size: 14px;
+            }
+            .card-header h5 {
+                font-size: 16px;
+            }
+            .card-body, .card-footer {
+                padding: 10px;
+            }
+            .list-group-item {
+                font-size: 14px;
+            }
+            .img-thumbnail {
+                max-width: 100px;
+                max-height: 100px;
+            }
+        }
+        @keyframes message-glow {
+            0% {
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+                transform: scale(1);
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+            35% {
+                box-shadow: 0 0 20px rgba(0, 123, 255, 0.8), 0 0 40px rgba(0, 123, 255, 0.4);
+                transform: scale(1.02);
+                background-color: rgba(0, 123, 255, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+                transform: scale(1);
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+        }
+
+        .message-glow {
+            animation: message-glow 0.5s ease-in-out !important;
+            position: relative !important;
+            z-index: 2 !important;
+        }
+
+        /* Override message backgrounds during glow */
+        .list-group-item.text-right.message-glow {
+            background-color: rgba(230, 247, 255, 0.9) !important;
+        }
+        
+        .list-group-item.text-left.message-glow {
+            background-color: rgba(240, 240, 240, 0.9) !important;
+        }
+
+        /* Add transition for smooth effect */
+        .list-group-item {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .message-content {
+            margin-bottom: 8px;
+        }
+
+        .attachment-container {
+            margin-bottom: 8px;
+        }
+
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .message-footer .btn-link {
+            padding: 0;
+        }
+
+        .reply-preview {
+            margin-bottom: 8px;
+            border-left: 2px solid #ccc;
+            padding-left: 10px;
+        }
+
+        /* Add these styles to your existing CSS */
+        .card-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .card-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        #user-search {
+            transition: all 0.3s ease;
+        }
+
+        #user-search:focus {
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+            border-color: #80bdff;
+        }
+
+        .list-group-item {
+            transition: all 0.3s ease;
+        }
+
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-btn {
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .user-item {
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+            margin-bottom: 8px;
+            border-radius: 10px;
+        }
+
+        .user-item:hover {
+            transform: translateX(5px);
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+
+        .user-link {
+            color: #495057;
+            text-decoration: none;
+            flex-grow: 1;
+        }
+
+        .user-link:hover {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .search-results-info {
+            font-size: 0.875rem;
+            color: #6c757d;
+            padding-left: 10px;
+        }
+
+        /* Custom scrollbar for user list */
+        .card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Animation for search results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-item {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .search-status {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .search-status .alert {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .search-status .close {
+            padding: 0.5rem;
+            margin: -0.5rem -0.5rem -0.5rem 0.5rem;
+        }
+
+        @keyframes slideDown {
+            from { 
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-item.search-match {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .highlight {
+            border-radius: 3px;
+            padding: 0 2px;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-item.search-match {
+            animation: fadeIn 0.3s ease-out;
+            border-color: #ffc107;
+            background-color: #fff8e6;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        .admin-controls {
+            display: none;
+        }
+
+        .user-item:hover .admin-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .admin-controls button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .admin-controls button i {
+            font-size: 0.75rem;
+        }
+
+        .user-item.blocked {
+            opacity: 0.5;
+            background-color: #f8d7da;
+        }
+
+        .user-item.blocked::after {
+            content: '(Blocked)';
+            color: #dc3545;
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- User Selector Column -->
+            <div class="col-md-4 d-none d-md-block">
+                <div class="card" style="border-radius: 15px;">
+                    <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                        <h5>Select User</h5>
+                        <div class="search-wrapper mb-3">
+                            <div class="input-group">
+                                <input type="text" 
+                                       id="desktop-user-search" 
+                                       class="form-control" 
+                                       placeholder="Search users..." 
+                                       style="border-radius: 20px 0 0 20px;">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary search-btn" 
+                                            type="button" 
+                                            onclick="desktopSearchUsers()"
+                                            style="border-radius: 0 20px 20px 0;">
+                                        <i class="fas fa-search"></i>
+                                        Search
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Add search status indicator -->
+                            <div id="search-status" class="search-status mt-2" style="display: none;">
+                                <div class="alert alert-info mb-0 d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <span>Showing results for: </span>
+                                        <strong id="search-term-display"></strong>
+                                    </div>
+                                    <button type="button" class="close" onclick="clearDesktopSearch()">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body" style="height: calc(100vh - 200px); overflow-y: auto;">
+                        <ul class="list-group list-group-flush" id="desktop-user-list">
+                            {% for user in users %}
+                                <li class="list-group-item user-item {% if search_query and search_query in user.username.lower() %}search-match{% endif %}"
+                                    {% if search_query and search_query not in user.username.lower() %}style="display: none;"{% endif %}>
+                                    <a href="{{ url_for('chat', recipient=user.username) }}" class="d-flex align-items-center">
+                                        <img src="{{ user.profile_photo if user.profile_photo else url_for('static', filename='default_avatar.png') }}" 
+                                             alt="{{ user.username }}"
+                                             class="rounded-circle mr-2"
+                                             style="width: 40px; height: 40px; object-fit: cover;">
+                                        <span class="user-name" data-username="{{ user.username }}">{{ user.username }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <!-- Add no results message -->
+                        <div id="no-results-message" class="text-center text-muted py-3" style="display: none;">
+                            No users found
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Chat Column -->
+            <div class="col-md-8 col-sm-12">
+                <div class="card" style="border-radius: 15px;">
+                    <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                        <h5>Chat with {{ recipient }}</h5>
+                        <a href="{{ url_for('user_selector') }}" class="btn btn-outline-secondary d-md-none">Select User</a>
+                        <button class="btn btn-outline-secondary float-right" onclick="openManageUserModal()" style="display: flex; align-items: center; gap: 5px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0yIDE4di0uOHEwLS44NS40MjUtMS41NjJUMy42IDE0LjU1cTEuNDI1LS43MjUgMi45NjMtMS4xNXQzLjEzNy0uNDI1cS4zNSAwIC41NS4zMTN0LjA3NS42NjJxLS4xNS41MjUtLjIyNSAxLjA1dC0uMDc1IDEuMDc1cTAgLjcyNS4xNSAxLjRUMTAuNiAxOC44cS4yLjQyNS0uMDM3LjgxM1Q5LjkgMjBINHEtLjgyNSAwLTEuNDEyLS41ODdUMiAxOG0xNSAwcS44MjUgMCAxLjQxMy0uNTg3VDE5IDE2dC0uNTg3LTEuNDEyVDE3IDE0dC0xLjQxMi41ODhUMTUgMTZ0LjU4OCAxLjQxM1QxNyAxOG0tNy02cS0xLjY1IDAtMi44MjUtMS4xNzVUNiA4dDEuMTc1LTIuODI1VDEwIDR0Mi44MjUgMS4xNzVUMTQgOHQtMS4xNzUgMi44MjVUMTAgMTJtNS44NSA4LjJsLS4xNS0uN3EtLjMtLjEyNS0uNTYyLS4yNjJUMTQuNiAxOC45bC0uNzI1LjIyNXEtLjMyNS4xLS42MzctLjAyNXQtLjQ4OC0uNGwtLjItLjM1cS0uMTc1LS4zLS4xMjUtLjY1dC4zMjUtLjU3NWwuNTUtLjQ3NXEtLjA1LS4zNS0uMDUtLjY1dC4wNS0uNjVsLS41NS0uNDc1cS0uMjc1LS4yMjUtLjMyNS0uNTYzdC4xMjUtLjYzN2wuMjI1LS4zNzVxLjE3NS0uMjc1LjQ3NS0uNHQuNjI1LS4wMjVsLjcyNS4yMjVxLjI3NS0uMi41MzgtLjMzOHQuNTYyLS4yNjJsLjE1LS43MjVxLjA3NS0uMzUuMzM4LS41NjJUMTYuOCAxMWguNHEuMzUgMCAuNjEzLjIyNXQuMzM3LjU3NWwuMTUuN3EuMy4xMjUuNTYyLjI3NXQuNTM4LjM3NWwuNjc1LS4yMjVxLjM1LS4xMjUuNjc1IDB0LjUuNDI1bC4yLjM1cS4xNzUuMy4xMjUuNjV0LS4zMjUuNTc1bC0uNTUuNDc1cS4wNS4zLjA1LjYyNXQtLjA1LjYyNWwuNTUuNDc1cS4yNzUuMjI1LjMyNS41NjN0LS4xMjUuNjM3bC0uMjI1LjM3NXEtLjE3NS4yNzUtLjQ3NS40dC0uNjI1LjAyNUwxOS40IDE4LjlxLS4yNzUuMi0uNTM4LjMzN3QtLjU2Mi4yNjNsLS4xNS43MjVxLS4wNzUuMzUtLjMzNy41NjNUMTYuNyAyMWgtLjRxLS4zNSAwLS42MTItLjIyNXQtLjMzOC0uNTc1Ii8+PC9zdmc+" 
+                                 alt="Manage User" 
+                                 style="width: 20px; height: 20px; filter: invert(50%);">
+                            
+                        </button>
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary float-right mr-2" style="display: flex; align-items: center; gap: 5px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMgM2ExIDEgMCAwIDAtMSAxdjEyYTEgMSAwIDEgMCAyIDBWNGExIDEgMCAwIDAtMS0xbTEwLjI5MyA5LjI5M2ExIDEgMCAwIDAgMS40MTQgMS40MTRsMy0zYTEgMSAwIDAgMCAwLTEuNDE0bC0zLTNhMSAxIDAgMSAwLTEuNDE0IDEuNDE0TDE0LjU4NiA5SDdhMSAxIDAgMSAwIDAgMmg3LjU4NnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==" 
+                                 alt="Logout" 
+                                 style="width: 20px; height: 20px; filter: invert(50%);">
+                        
+                        </a>
+                    </div>
+                    <div class="card-body" id="chat-body">
+                        <ul class="list-group messages-container" id="messages-list">
+                            {% for message in messages %}
+                                <li class="list-group-item {% if message.sender == session['username'] %}text-right{% else %}text-left{% endif %}" id="message-{{ message.id }}" data-id="{{ message.id }}" style="border-radius: 15px; margin-bottom: 10px;" ondblclick="toggleMessageSelection(this, '{{ message.id }}')">
+                                    {% if message.reply_to %}
+                                        <div class="reply-preview" style="border-left: 2px solid #ccc; padding-left: 10px; margin-bottom: 5px;" onclick="scrollToMessage('{{ message.reply_to.id }}')">
+                                            <small class="text-muted">
+                                                Replying to: {{ message.reply_to.content }}
+                                                {% if message.reply_to.image_url %}[Image]{% endif %}
+                                                {% if message.reply_to.file_url %}
+                                                    {% if message.reply_to.file_url.endswith(('.mp4', '.webm')) %}
+                                                        [Video: {{ message.reply_to.file_name }}]
+                                                    {% elif message.reply_to.file_url.endswith(('.mp3', '.wav')) %}
+                                                        [Audio: {{ message.reply_to.file_name }}]
+                                                    {% else %}
+                                                        [File: {{ message.reply_to.file_name }}]
+                                                    {% endif %}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                    {{ message.content }}
+                                    {% if message.image_url %}
+                                        <br>
+                                        <img src="{{ message.image_url }}" alt="Image" class="img-thumbnail" style="max-width: 150px; border-radius: 15px;" onclick="openImageModal('{{ message.image_url }}')">
+                                    {% endif %}
+                                    {% if message.file_url %}
+                                        <br>
+                                        <a href="{{ message.file_url }}" target="_blank">{{ message.file_name }}</a>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                    <button class="btn btn-sm btn-link" onclick="replyToMessage('{{ message.id }}', '{{ message.content }}')">Reply</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="card-footer" style="border-radius: 0 0 15px 15px;">
+                        <form id="messageForm" action="{{ url_for('chat', recipient=recipient) }}" method="POST" enctype="multipart/form-data">
+                            <div id="replyPreview" style="display: none; margin-bottom: 10px;"></div>
+                            <div class="input-group">
+                                <input type="text" name="message" class="form-control" placeholder="Enter your message" style="border-radius: 25px;">
+                                <!-- Replace the existing submit button with this new one -->
+                                <div class="input-group-append">
+                                    <label class="btn btn-outline-secondary mb-0" style="border-radius: 30%; margin-right: 10px; margin-left: 10px;">
+                                        <input type="file" name="file" id="fileInput" style="display: none;" onchange="previewFile(event)">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMS41IDE3LjVoMXYtM2gzdi0xaC0zdi0zaC0xdjNoLTN2MWgzek02LjYxNiAyMXEtLjY5MSAwLTEuMTUzLS40NjJUNSAxOS4zODVWNC42MTVxMC0uNjkuNDYzLTEuMTUyVDYuNjE2IDNIMTQuNUwxOSA3LjV2MTEuODg1cTAgLjY5LS40NjIgMS4xNTNUMTcuMzg0IDIxek0xNCA4aDRsLTQtNHoiLz48L3N2Zz4=" 
+                                             alt="Attach file" 
+                                             style="width: 20px; height: 20px; filter: invert(80%);">
+                                    </label>
+                                    <button class="btn btn-primary" type="submit" style="border-radius: 30%;">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMuNDAyIDYuNjczYy0uMjYtMi4zMzQgMi4xNDMtNC4wNDggNC4yNjYtMy4wNDJsMTEuOTQ0IDUuNjU4YzIuMjg4IDEuMDgzIDIuMjg4IDQuMzM5IDAgNS40MjJMNy42NjggMjAuMzdjLTIuMTIzIDEuMDA2LTQuNTI1LS43MDgtNC4yNjYtMy4wNDJMMy44ODIgMTNIMTJhMSAxIDAgMSAwIDAtMkgzLjg4M3oiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==" 
+                                             alt="Send" 
+                                             style="width: 20px; height: 20px; filter: invert(100%);">
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="filePreview" style="margin-top: 10px;"></div>
+                            <!-- Progress Bar -->
+                            <div class="progress" id="uploadProgress" style="display: none; margin-top: 10px;">
+                                <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </form>
+                        <div id="deleteSelectedContainer" style="display: none; text-align: right; margin-top: 10px;">
+                            <button class="btn btn-danger" onclick="deleteSelectedMessages()">Delete Selected</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage User Modal -->
+    <div class="modal fade" id="manageUserModal" tabindex="-1" role="dialog" aria-labelledby="manageUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageUserModalLabel">Manage User</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="manageUserForm" action="{{ url_for('manage_user') }}" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePhoto">Profile Photo</label>
+                            <input type="file" class="form-control-file" id="profilePhoto" name="profile_photo">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Image Preview</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" class="img-fluid" alt="Preview" style="max-height: 80vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Image Preview</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+    <script>
+    const selectedMessages = new Set();
+    let userScrolledUp = false;
+    let replyMessageId = null;
+    let formSubmitted = false;
+
+    function toggleMessageSelection(messageElement, messageId) {
+        if (selectedMessages.has(messageId)) {
+            selectedMessages.delete(messageId);
+            messageElement.classList.remove('selected');
+        } else {
+            selectedMessages.add(messageId);
+            messageElement.classList.add('selected');
+        }
+        updateDeleteButtonVisibility();
+    }
+
+    function updateDeleteButtonVisibility() {
+        const deleteButtonContainer = document.getElementById('deleteSelectedContainer');
+        if (selectedMessages.size > 0) {
+            deleteButtonContainer.style.display = 'block';
+        } else {
+            deleteButtonContainer.style.display = 'none';
+        }
+    }
+
+    function fetchMessages() {
+        fetch('{{ url_for("get_messages", recipient=recipient) }}')
+            .then(response => response.json())
+            .then(data => {
+                const messagesList = document.getElementById('messages-list');
+                const existingMessageIds = new Set(Array.from(messagesList.children).map(li => li.getAttribute('data-id')));
+
+                data.forEach(message => {
+                    const messageId = message.id.toString();
+                    if (!document.getElementById(`message-${messageId}`) && !existingMessageIds.has(messageId)) {
+                        const li = document.createElement('li');
+                        li.className = `list-group-item ${message.sender === "{{ session['username'] }}" ? 'text-right' : 'text-left'}`;
+                        li.id = `message-${messageId}`;
+                        li.setAttribute('data-id', messageId);
+                        li.style.borderRadius = '15px';
+                        li.style.marginBottom = '10px';
+                        li.setAttribute('ondblclick', `toggleMessageSelection(this, '${messageId}')`);
+
+                        let messageHTML = '';
+
+                        // Add reply preview if exists
+                        if (message.reply_to) {
+                            let replyContent = message.reply_to.content;
+                            if (message.reply_to.file_name) {
+                                replyContent += ` (${message.reply_to.file_name})`;
+                            }
+                            messageHTML += `
+                                <div class="reply-preview" style="border-left: 2px solid #ccc; padding-left: 10px; margin-bottom: 5px; cursor: pointer;" 
+                                     onclick="highlightOriginalMessage('${message.reply_to.id}')">
+                                    <small class="text-muted">Replying to: ${replyContent}</small>
+                                </div>`;
+                        }
+
+                        // Add message content in container
+                        messageHTML += `
+                            <div class="message-content" style="margin-bottom: 8px;">
+                                ${message.content}
+                            </div>`;
+
+                        // Add attachments in container
+                        if (message.image_url || message.file_url) {
+                            messageHTML += `
+                            <div class="attachment-container" style="margin-bottom: 8px;">`;
+                            
+                            if (message.image_url) {
+                                messageHTML += `
+                                <img src="${message.image_url}" alt="Image" class="img-thumbnail" 
+                                    style="max-width: 150px; border-radius: 15px;" 
+                                    onclick="openImageModal('${message.image_url}')">`;
+                            }
+                            
+                            if (message.file_url) {
+                                if (message.file_url.endsWith('.mp4') || message.file_url.endsWith('.webm')) {
+                                    messageHTML += `
+                                    <video controls style="max-width: 150px; border-radius: 15px;">
+                                        <source src="${message.file_url}" type="video/mp4">
+                                    </video>`;
+                                } else if (message.file_url.endsWith('.mp3') || message.file_url.endsWith('.wav')) {
+                                    messageHTML += `
+                                    <audio controls style="max-width: 150px; border-radius: 15px;">
+                                        <source src="${message.file_url}" type="audio/mpeg">
+                                    </audio>`;
+                                } else {
+                                    messageHTML += `
+                                    <a href="${message.file_url}" target="_blank">${message.file_name}</a>`;
+                                }
+                            }
+                            messageHTML += `
+                            </div>`;
+                        }
+
+                        // Add footer with timestamp and reply button
+                        messageHTML += `
+                            <div class="message-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                <small class="text-muted">${message.timestamp || new Date().toISOString().replace('T', ' ').substring(0, 19)}</small>
+                                <button class="btn btn-sm btn-link" style="padding: 0;" onclick="replyToMessage('${messageId}', '${message.content}')">Reply</button>
+                            </div>`;
+
+                        li.innerHTML = messageHTML;
+                        messagesList.appendChild(li);
+
+                        if (!userScrolledUp) {
+                            scrollToBottom();
+                        }
+
+                        // Show notification for new message if the window is not focused
+                        if (Notification.permission === 'granted' && !document.hasFocus()) {
+                            new Notification('New Message', {
+                                body: message.content,
+                                icon: '/path/to/icon.png' // Optional: Add an icon for the notification
+                            });
+                        }
+                    }
+                });
+            });
+    }
+
+    function deleteSelectedMessages() {
+        const messageIds = Array.from(selectedMessages);
+
+        fetch('/delete_messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message_ids: messageIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageIds.forEach(id => {
+                    const messageElement = document.getElementById(`message-${id}`);
+                    messageElement.remove();
+                });
+                selectedMessages.clear();
+                updateDeleteButtonVisibility();
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting messages:', error);
+        });
+    }
+
+    function previewFile(event) {
+        const filePreview = document.getElementById('filePreview');
+        filePreview.innerHTML = '';
+        const file = event.target.files[0];
+        if (file && file.size <= 20 * 1024 * 1024) { // Check file size is under 20 MB
+            const fileName = document.createElement('p');
+            fileName.textContent = file.name;
+            filePreview.appendChild(fileName);
+        } else {
+            alert('File size must be under 20 MB');
+        }
+    }
+
+    function deleteMessage(messageId) {
+        fetch(`/delete_message/${messageId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const messageElement = document.getElementById(`message-${messageId}`);
+                messageElement.remove();
+            }
+        });
+    }
+
+    function banUser(userId) {
+        fetch(`/ban_user/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const userElement = document.querySelector(`li a[href$="/chat/${userId}"]`).parentElement;
+                userElement.remove();
+            }
+        });
+    }
+
+    function searchUsers() {
+        const searchInput = document.getElementById('user-search').value.toLowerCase();
+        const userList = document.getElementById('user-list');
+        const users = userList.getElementsByTagName('li');
+        const searchButton = document.querySelector('.btn-outline-secondary i.fas.fa-search');
+        
+        // Add loading state to button
+        if (searchButton) {
+            searchButton.classList.add('fa-spin');
+        }
+
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i].getElementsByTagName('a')[0];
+            const username = user.textContent || user.innerText;
+            if (username.toLowerCase().includes(searchInput)) {
+                users[i].style.display = '';
+                users[i].style.animation = 'fadeIn 0.3s ease-in';
+            } else {
+                users[i].style.display = 'none';
+            }
+        }
+
+        // Remove loading state after search completes
+        setTimeout(() => {
+            if (searchButton) {
+                searchButton.classList.remove('fa-spin');
+            }
+        }, 300);
+    }
+
+    function openImageModal(imageUrl) {
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        $('#imageModal').modal('show');
+    }
+
+    function scrollToBottom() {
+        const chatBody = document.getElementById('chat-body');
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function highlightOriginalMessage(messageId) {
+        const messageElement = document.getElementById(`message-${messageId}`);
+        if (messageElement) {
+            // Remove any existing glow effects
+            document.querySelectorAll('.message-glow').forEach(el => {
+                el.classList.remove('message-glow');
+            });
+            
+            // Add glow effect to the original message
+            messageElement.classList.add('message-glow');
+            
+            // Scroll the message into view
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Remove glow after animation
+            setTimeout(() => {
+                messageElement.classList.remove('message-glow');
+            }, 1000);  // Changed from 2000 to 1000
+        }
+    }
+
+    function scrollToMessage(messageId) {
+        highlightOriginalMessage(messageId);
+    }
+
+    function replyToMessage(messageId, messageContent) {
+        const messageElement = document.getElementById(`message-${messageId}`);
+        if (!messageElement) return;
+        
+        replyMessageId = messageId;
+        const replyPreview = document.getElementById('replyPreview');
+        
+        // Remove existing glow effects
+        document.querySelectorAll('.message-glow').forEach(el => {
+            el.classList.remove('message-glow');
+        });
+        
+        // Add new glow effect
+        messageElement.classList.add('message-glow');
+        
+        // Scroll the message into view
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Remove glow after animation
+        setTimeout(() => {
+            messageElement.classList.remove('message-glow');
+        }, 1000);  // Changed from 2000 to 1000
+        
+        let replyText = messageContent;
+        
+        // Check for attachments
+        if (messageElement) {
+            const imageElement = messageElement.querySelector('img.img-thumbnail');
+            if (imageElement) {
+                replyText += ' [Image]';
+            }
+            
+            const fileLink = messageElement.querySelector('a[href]');
+            if (fileLink && !fileLink.parentElement.querySelector('video, audio')) {
+                replyText += ` [File: ${fileLink.textContent}]`;
+            }
+            
+            const videoElement = messageElement.querySelector('video');
+            if (videoElement) {
+                const source = videoElement.querySelector('source');
+                const videoName = source.src.split('/').pop();
+                replyText += ` [Video: ${videoName}]`;
+            }
+            
+            const audioElement = messageElement.querySelector('audio');
+            if (audioElement) {
+                const source = audioElement.querySelector('source');
+                const audioName = source.src.split('/').pop();
+                replyText += ` [Audio: ${audioName}]`;
+            }
+        }
+
+        // Update reply preview
+        replyPreview.innerHTML = `
+            <div class="reply-box" style="background: #f8f9fa; padding: 8px; border-radius: 8px; border-left: 3px solid #007bff;">
+                <small class="text-muted">Replying to: ${replyText}</small>
+                <button type="button" class="close" style="float: right;" onclick="clearReply()">&times;</button>
+            </div>
+        `;
+        replyPreview.style.display = 'block';
+    }
+
+    function clearReply() {
+        replyMessageId = null;
+        const replyPreview = document.getElementById('replyPreview');
+        replyPreview.innerHTML = '';
+        replyPreview.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Request notification permission
+        if (Notification.permission !== 'granted') {
+            Notification.requestPermission();
+        }
+
+        fetchMessages();
+        setInterval(fetchMessages, 3000);
+        scrollToBottom();
+
+        const chatBody = document.getElementById('chat-body');
+        chatBody.addEventListener('scroll', function() {
+            const isScrolledToBottom = chatBody.scrollHeight - chatBody.clientHeight <= chatBody.scrollTop + 1;
+            userScrolledUp = !isScrolledToBottom;
+        });
+
+        const form = document.getElementById('messageForm');
+
+        if (!formSubmitted) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(form);
+                if (replyMessageId) {
+                    formData.append('reply_to', replyMessageId);
+                }
+
+                const uploadProgress = document.getElementById('uploadProgress');
+                const progressBar = uploadProgress.querySelector('.progress-bar');
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.action, true);
+
+                xhr.upload.addEventListener('progress', function(event) {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressBar.setAttribute('aria-valuenow', percentComplete);
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response && response.success && response.message) {
+                            const message = response.message;
+                            const messagesList = document.getElementById('messages-list');
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item ' + (message.sender === "{{ session['username'] }}" ? 'text-right' : 'text-left');
+                            li.id = `message-${message.id}`;
+                            li.setAttribute('data-id', message.id);
+                            li.style.borderRadius = '15px';
+                            li.style.marginBottom = '10px';
+                            li.setAttribute('ondblclick', `toggleMessageSelection(this, '${message.id}')`);
+
+                            // Create current timestamp
+                            const now = new Date();
+                            const formattedTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+
+                            let messageHTML = '';
+
+                            // Add reply preview if exists
+                            if (message.reply_to) {
+                                let replyContent = message.reply_to.content;
+                                if (message.reply_to.file_name) {
+                                    replyContent += ` (${message.reply_to.file_name})`;
+                                }
+                                messageHTML += `
+                                    <div class="reply-preview" style="border-left: 2px solid #ccc; padding-left: 10px; margin-bottom: 5px; cursor: pointer;" 
+                                         onclick="scrollToMessage('${message.reply_to.id}')">
+                                        <small class="text-muted">Replying to: ${replyContent}</small>
+                                    </div>`;
+                            }
+
+                            // Add message content
+                            messageHTML += `
+    <div class="message-content" style="margin-bottom: 8px;">${message.content}</div>`;
+
+                            // Add attachments with consistent spacing
+                            if (message.image_url) {
+                                messageHTML += `
+    <div class="attachment-container" style="margin-bottom: 8px;">
+        <img src="${message.image_url}" alt="Image" class="img-thumbnail" 
+             style="max-width: 150px; border-radius: 15px;" 
+             onclick="openImageModal('${message.image_url}')">
+    </div>`;
+                            }
+
+                            if (message.file_url) {
+                                messageHTML += `
+    <div class="attachment-container" style="margin-bottom: 8px;">`;
+                                
+                                if (message.file_url.endsWith('.mp4') || message.file_url.endsWith('.webm')) {
+                                    messageHTML += `
+        <video controls style="max-width: 150px; border-radius: 15px;">
+            <source src="${message.file_url}" type="video/mp4">
+        </video>`;
+                                } else if (message.file_url.endsWith('.mp3') || message.file_url.endsWith('.wav')) {
+                                    messageHTML += `
+        <audio controls style="max-width: 150px; border-radius: 15px;">
+            <source src="${message.file_url}" type="audio/mpeg">
+        </audio>`;
+                                } else {
+                                    messageHTML += `
+        <a href="${message.file_url}" target="_blank">${message.file_name}</a>`;
+                                }
+                                messageHTML += `
+    </div>`;
+                            }
+
+                            // Add timestamp and reply button with consistent spacing
+                            messageHTML += `
+    <div class="message-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+        <small class="text-muted">${formattedTimestamp}</small>
+        <button class="btn btn-sm btn-link" style="padding: 0;" onclick="replyToMessage('${message.id}', '${message.content}')">Reply</button>
+    </div>`;
+
+                            li.innerHTML = messageHTML;
+                            messagesList.appendChild(li);
+
+                            // Clear form
+                            document.querySelector('input[name="message"]').value = '';
+                            document.querySelector('input[name="file"]').value = '';
+                            document.getElementById('filePreview').innerHTML = '';
+
+                            scrollToBottom();
+                        }
+                    } else {
+                        console.error('Error sending message:', xhr.statusText);
+                    }
+                    uploadProgress.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.setAttribute('aria-valuenow', '0');
+                    clearReply();
+                });
+
+                xhr.addEventListener('error', function() {
+                    console.error('Error sending message:', xhr.statusText);
+                    uploadProgress.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.setAttribute('aria-valuenow', '0');
+                    clearReply();
+                });
+
+                uploadProgress.style.display = 'block';
+                xhr.send(formData);
+            });
+            formSubmitted = true;
+        }
+    });
+
+    function openManageUserModal() {
+        $('#manageUserModal').modal('show');
+    }
+
+    function desktopSearchUsers() {
+        const searchInput = document.getElementById('desktop-user-search').value.toLowerCase();
+        const userList = document.getElementById('desktop-user-list');
+        const users = userList.getElementsByTagName('li');
+        const searchButton = document.querySelector('.search-btn i.fas.fa-search');
+        const searchStatus = document.getElementById('search-status');
+        const searchTermDisplay = document.getElementById('search-term-display');
+        const noResults = document.getElementById('no-results-message');
+        
+        // Add loading state
+        searchButton.classList.add('fa-spin');
+
+        // First hide all users
+        Array.from(users).forEach(user => {
+            user.style.display = 'none';
+            user.classList.remove('search-match');
+        });
+
+        if (searchInput.trim() === '') {
+            // Show all users if search is empty
+            Array.from(users).forEach(user => {
+                user.style.display = '';
+            });
+            searchStatus.style.display = 'none';
+            noResults.style.display = 'none';
+        } else {
+            let exactMatches = [];
+            let partialMatches = [];
+            
+            Array.from(users).forEach(user => {
+                const username = user.querySelector('.user-name').textContent.toLowerCase();
+                if (username === searchInput) {
+                    exactMatches.push(user);
+                } else if (username.includes(searchInput)) {
+                    partialMatches.push(user);
+                }
+            });
+
+            // Show matches in order (exact first, then partial)
+            [...exactMatches, ...partialMatches].forEach(user => {
+                user.style.display = '';
+                user.classList.add('search-match');
+                // Move matched users to top
+                userList.insertBefore(user, userList.firstChild);
+            });
+
+            // Update search status
+            if (exactMatches.length > 0 || partialMatches.length > 0) {
+                searchStatus.style.display = 'block';
+                searchTermDisplay.textContent = searchInput;
+                noResults.style.display = 'none';
+            } else {
+                searchStatus.style.display = 'none';
+                noResults.style.display = 'block';
+            }
+        }
+
+        // Remove loading state
+        setTimeout(() => {
+            searchButton.classList.remove('fa-spin');
+        }, 300);
+    }
+
+    // Update the clear search function to properly reset the highlights
+    function clearDesktopSearch() {
+        const searchInput = document.getElementById('desktop-user-search');
+        const searchStatus = document.getElementById('search-status');
+        const noResults = document.getElementById('no-results-message');
+        const users = document.getElementById('desktop-user-list').getElementsByTagName('li');
+        
+        // Clear search input
+        searchInput.value = '';
+        
+        // Hide search status and no results message
+        searchStatus.style.display = 'none';
+        noResults.style.display = 'none';
+        
+        // Show all users and remove highlights
+        Array.from(users).forEach(user => {
+            user.style.display = '';
+            user.classList.remove('search-match');
+            const userLink = user.querySelector('a');
+            userLink.innerHTML = userLink.textContent; // Remove any highlight spans
+        });
+    }
+
+    // Add event listener for real-time search
+    document.getElementById('desktop-user-search').addEventListener('keyup', desktopSearchUsers);
+
+    // Add admin functions
+    function isAdmin() {
+        return "{{ session['username'] }}" === "OMKARKUMBHAR";
+    }
+
+    function showAdminControls() {
+        if (isAdmin()) {
+            // Add admin controls to each user in the list
+            const userList = document.getElementById('desktop-user-list');
+            const users = userList.getElementsByTagName('li');
+            
+            Array.from(users).forEach(userItem => {
+                const username = userItem.querySelector('.user-name').textContent;
+                if (username !== "OMKARKUMBHAR") {
+                    const adminControls = document.createElement('div');
+                    adminControls.className = 'admin-controls';
+                    adminControls.style.marginLeft = 'auto';
+                    adminControls.innerHTML = `
+                        <button class="btn btn-warning btn-sm mx-1" onclick="blockUser('${username}')" title="Block User">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="banUser('${username}')" title="Ban User">
+                            <i class="fas fa-user-slash"></i>
+                        </button>
+                    `;
+                    
+                    const userLink = userItem.querySelector('a');
+                    userLink.style.display = 'flex';
+                    userLink.style.alignItems = 'center';
+                    userLink.style.justifyContent = 'space-between';
+                    userLink.appendChild(adminControls);
+                }
+            });
+        }
+    }
+
+    // Update the blockUser and banUser functions
+
+    function blockUser(username) {
+        if (!isAdmin()) return;
+        
+        if (confirm(`Are you sure you want to block ${username}?`)) {
+            fetch('/admin/block_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`User ${username} has been blocked`);
+                    const userElement = document.querySelector(`li .user-name[data-username="${username}"]`)?.closest('li');
+                    if (userElement) {
+                        userElement.classList.add('blocked');
+                    }
+                } else {
+                    alert(data.message || 'Failed to block user');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while blocking the user');
+            });
+        }
+    }
+
+    function banUser(username) {
+        if (!isAdmin()) return;
+        
+        if (confirm(`Are you sure you want to ban ${username}? This action cannot be undone.`)) {
+            fetch('/admin/ban_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`User ${username} has been banned`);
+                    const userElement = document.querySelector(`li .user-name[data-username="${username}"]`)?.closest('li');
+                    if (userElement) {
+                        userElement.remove();
+                    }
+                } else {
+                    alert(data.message || 'Failed to ban user');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while banning the user');
+            });
+        }
+    }
+
+    // Add this to the existing DOMContentLoaded event listener
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... existing code ...
+        
+        // Initialize admin controls if user is admin
+        showAdminControls();
+    });
+</script>
+{% endblock %}

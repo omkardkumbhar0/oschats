@@ -1,0 +1,218 @@
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import uuid
+from datetime import datetime
+from flask_migrate import Migrate
+
+app = Flask(__name__)
+app.secret_key = '502c168d124a023746c182b987b22f42'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
+# Ensure the upload folder exists
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    profile_photo = db.Column(db.String(500), nullable=True)  # New field for profile photo
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender = db.Column(db.String(150), nullable=False)
+    recipient = db.Column(db.String(150), nullable=False)
+    content = db.Column(db.String(500), nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Message {self.sender} to {self.recipient}: {self.content}>'
+
+@app.route('/')
+def index():
+    if 'username' in session:
+        users = User.query.all()
+        return render_template('index.html', users=users)
+    return redirect(url_for('login'))
+
+@app.route('/chat/<recipient>', methods=['GET', 'POST'])
+def chat(recipient):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        message_content = request.form.get('message')
+        image = request.files.get('image')
+        image_url = None
+        
+        if image:
+            filename = secure_filename(image.filename)
+            ext = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{uuid.uuid4().hex}.{ext}"
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            image_url = url_for('static', filename=f'uploads/{unique_filename}')
+            
+        new_message = Message(
+            sender=session['username'],
+            recipient=recipient,
+            content=message_content,
+            image_url=image_url
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        
+        # Return JSON response for AJAX request
+        return jsonify({
+            'success': True,
+            'message': {
+                'id': new_message.id,
+                'sender': new_message.sender,
+                'content': new_message.content,
+                'image_url': new_message.image_url,
+                'timestamp': new_message.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+
+    # GET request handling
+    users = User.query.all()
+    messages = Message.query.filter(
+        ((Message.sender == session['username']) & (Message.recipient == recipient)) |
+        ((Message.sender == recipient) & (Message.recipient == session['username']))
+    ).order_by(Message.id).all()
+    return render_template('chat.html', messages=messages, recipient=recipient, users=users)
+
+@app.route('/messages/<recipient>', methods=['GET'])
+def get_messages(recipient):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    messages = Message.query.filter(
+        ((Message.sender == session['username']) & (Message.recipient == recipient)) |
+        ((Message.sender == recipient) & (Message.recipient == session['username']))
+    ).order_by(Message.id).all()
+    return jsonify([{'id': message.id, 'sender': message.sender, 'content': message.content, 'image_url': message.image_url, 'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S')} for message in messages])
+
+@app.route('/delete_message/<int:message_id>', methods=['POST'])
+def delete_message(message_id):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    message = Message.query.get(message_id)
+    user = User.query.filter_by(username=session['username']).first()
+    if message and (message.sender == session['username'] or user.is_admin):
+        db.session.delete(message)
+        db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/delete_messages', methods=['POST'])
+def delete_messages():
+    if 'username' not in session:
+        return jsonify({'success': False}), 403
+    data = request.get_json()
+    message_ids = data.get('message_ids', [])
+    for message_id in message_ids:
+        message = Message.query.get(message_id)
+        if message and (message.sender == session['username'] or session['username'] == 'OMKARKUMBHAR'):
+            db.session.delete(message)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/ban_user/<int:user_id>', methods=['POST'])
+def ban_user(user_id):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    user = User.query.filter_by(username=session['username']).first()
+    if user.is_admin:
+        user_to_ban = User.query.get(user_id)
+        if user_to_ban:
+            db.session.delete(user_to_ban)
+            db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        profile_photo = request.files.get('profile_photo')
+        profile_photo_url = None
+        if profile_photo:
+            filename = secure_filename(profile_photo.filename)
+            ext = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{uuid.uuid4().hex}.{ext}"
+            profile_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            profile_photo_url = url_for('static', filename=f'uploads/{unique_filename}')
+        if User.query.filter_by(username=username).first():
+            return 'Username already exists!'
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=username, password=hashed_password, profile_photo=profile_photo_url)
+        if username == 'OMKARKUMBHAR':
+            new_user.is_admin = True
+        db.session.add(new_user)
+        db.session.commit()
+        session['username'] = username
+        return redirect(url_for('index'))
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if not user or not check_password_hash(user.password, password):
+            return 'Invalid credentials!'
+        session['username'] = username
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+@app.route('/manage_user', methods=['POST'])
+def manage_user():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    data = request.form
+    new_username = data.get('username')
+    new_password = data.get('password')
+    profile_photo = request.files.get('profile_photo')
+    profile_photo_url = None
+    if profile_photo:
+        filename = secure_filename(profile_photo.filename)
+        ext = filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}.{ext}"
+        profile_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+        profile_photo_url = url_for('static', filename=f'uploads/{unique_filename}')
+    user = User.query.filter_by(username=session['username']).first()
+    if user:
+        user.username = new_username
+        user.password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        if profile_photo_url:
+            user.profile_photo = profile_photo_url
+        db.session.commit()
+        session['username'] = new_username
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/user_selector')
+def user_selector():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    users = User.query.all()
+    return render_template('user_selector.html', users=users)
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

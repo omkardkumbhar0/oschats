@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Manage Groups</h2>
+    
+    <!-- Create New Group -->
+    <div class="card mb-4">
+        <div class="card-header">
+            Create New Group
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('create_group') }}" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="group_name">Group Name</label>
+                    <input type="text" class="form-control" id="group_name" name="group_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="group_photo">Group Photo</label>
+                    <input type="file" class="form-control-file" id="group_photo" name="group_photo">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Group</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- My Groups -->
+    <div class="card mb-4">
+        <div class="card-header">
+            My Groups
+        </div>
+        <div class="card-body">
+            {% if my_groups %}
+                {% for group in my_groups %}
+                    <div class="group-item border-bottom p-3">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ group.photo_url if group.photo_url else 'static/default_group.png' }}" 
+                                 alt="Group Photo" 
+                                 class="img-thumbnail rounded-circle" 
+                                 style="width: 50px; height: 50px; margin-right: 15px;">
+                            <div>
+                                <h5>{{ group.name }}</h5>
+                                <div class="members-list mb-2">
+                                    <strong>Members:</strong>
+                                    {% for member in group.members %}
+                                        <span class="badge badge-primary">{{ member.username }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Add Member Form -->
+                        <form action="{{ url_for('add_member', group_id=group.id) }}" method="POST" class="form-inline mb-2">
+                            <input type="text" class="form-control mr-2" name="username" placeholder="Username">
+                            <button type="submit" class="btn btn-success btn-sm">Add Member</button>
+                        </form>
+                        <div class="btn-group">
+                            <a href="{{ url_for('group_chat', group_id=group.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-comments"></i> Open Chat
+                            </a>
+                            <button class="btn btn-warning btn-sm" onclick="editGroup('{{ group.id }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteGroup{{ group.id }}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+
+                        <!-- Delete Group Modal -->
+                        <div class="modal fade" id="deleteGroup{{ group.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Delete Group</h5>
+                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Are you sure you want to delete "{{ group.name }}"?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('delete_group', group_id=group.id) }}" method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>You haven't created any groups yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Groups I'm Member Of -->
+    <div class="card">
+        <div class="card-header">
+            Groups I'm Member Of
+        </div>
+        <div class="card-body">
+            {% if member_groups %}
+                {% for group in member_groups %}
+                    <div class="group-item border-bottom p-3">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ group.photo_url if group.photo_url else 'static/default_group.png' }}" 
+                                 alt="Group Photo" 
+                                 class="img-thumbnail rounded-circle" 
+                                 style="width: 50px; height: 50px; margin-right: 15px;">
+                            <div>
+                                <h5>{{ group.name }}</h5>
+                                <p class="text-muted mb-2">Created by: {{ group.creator.username }}</p>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <a href="{{ url_for('group_chat', group_id=group.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-comments"></i> Open Chat
+                            </a>
+                            <form action="{{ url_for('leave_group', group_id=group.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-sign-out-alt"></i> Leave Group
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>You're not a member of any groups.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Group</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editGroupForm" method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="edit_group_name">Group Name</label>
+                        <input type="text" class="form-control" id="edit_group_name" name="group_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_group_photo">Group Photo</label>
+                        <input type="file" class="form-control-file" id="edit_group_photo" name="group_photo">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editGroup(groupId) {
+    // Get the current group data
+    fetch(`/api/group/${groupId}`)
+        .then(response => response.json())
+        .then(group => {
+            document.getElementById('edit_group_name').value = group.name;
+            document.getElementById('editGroupForm').action = `/edit_group/${groupId}`;
+            $('#editGroupModal').modal('show');
+        });
+}
+
+// Preview uploaded images
+document.getElementById('group_photo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.createElement('img');
+            preview.src = e.target.result;
+            preview.style.maxWidth = '200px';
+            preview.style.marginTop = '10px';
+            const container = document.getElementById('group_photo').parentElement;
+            const oldPreview = container.querySelector('img');
+            if (oldPreview) {
+                container.removeChild(oldPreview);
+            }
+            container.appendChild(preview);
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Handle member search
+function searchMembers(input, groupId) {
+    const searchTerm = input.value.toLowerCase();
+    fetch(`/api/search_users?term=${searchTerm}&group_id=${groupId}`)
+        .then(response => response.json())
+        .then(users => {
+            // Update the suggested users dropdown
+            const dropdown = input.nextElementSibling;
+            dropdown.innerHTML = '';
+            users.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.textContent = user.username;
+                option.onclick = () => {
+                    input.value = user.username;
+                    dropdown.style.display = 'none';
+                };
+                dropdown.appendChild(option);
+            });
+            dropdown.style.display = users.length ? 'block' : 'none';
+        });
+}
+</script>
+{% endblock %}

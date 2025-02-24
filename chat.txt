@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .text-right {
+            text-align: right;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .list-group-item.text-right {
+            background-color: #e6f7ff;
+            margin-left: auto;
+            border-radius: 15px 15px 0 15px;
+        }
+        .list-group-item.text-left {
+            background-color: #f0f0f0;
+            margin-right: auto;
+            border-radius: 15px 15px 15px 0;
+        }
+        .selected {
+            background-color: #ff7272;
+            transition: background-color 0.3s ease-in-out;
+        }
+        #chat-body {
+            height: 60vh; /* Set the height to 80% of the viewport height */
+            overflow-y: auto;
+        }
+        @media (max-width: 767px) {
+            .navbar-brand, .nav-link, .btn {
+                font-size: 14px;
+            }
+            .card-header h5 {
+                font-size: 16px;
+            }
+            .card-body, .card-footer {
+                padding: 10px;
+            }
+            .list-group-item {
+                font-size: 14px;
+            }
+            .img-thumbnail {
+                max-width: 100px;
+                max-height: 100px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-lg navbar-light" style="background: linear-gradient(to right, #ffecd2, #fcb69f);">
+        <a class="navbar-brand" href="#">ChatApp</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('logout') }}">
+                        <svg id="i-signout" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                            <path d="M28 16 L8 16 M20 8 L28 16 20 24 M11 28 L3 28 3 4 11 4" />
+                        </svg>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-secondary" data-toggle="modal" data-target="#manageUserModal">
+                        Manage User
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <div class="col-md-3 col-sm-12 mb-3 d-none d-md-block">
+                <div class="card" style="border-radius: 15px;">
+                    <ul class="list-group list-group-flush" id="user-list" style="max-height: 400px; overflow-y: auto;">
+                        {% for user in users %}
+                            {% if user.username != session['username'] %}
+                                <li class="list-group-item">
+                                    <a href="{{ url_for('chat', recipient=user.username) }}">
+                                        {% if user.profile_photo %}
+                                            <img src="{{ user.profile_photo }}" alt="Profile Photo" class="img-thumbnail" style="width: 50px; height: 50px; border-radius: 50%;">
+                                        {% else %}
+                                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTIyIDEydjcuMjA2YTEuNzI3IDEuNzI3IDAgMCAxLTIuNSAxLjU0NGEyLjg5IDIuODkgMCAwIDAtMi44OTYuMThhMi44OSAyLjg5IDAgMCAxLTMuMjA4IDBsLS4zNTMtLjIzNGExLjg4IDEuODggMCAwIDAtMi4wODYgMGwtLjM1My4yMzVhMi44OSAyLjg5IDAgMCAxLTMuMjA4IDBhMi44OSAyLjg5IDAgMCAwLTIuODk3LS4xOEExLjcyNyAxLjcyNyAwIDAgMSAyIDE5LjIwNVYxMkMyIDYuNDc3IDYuNDc3IDIgMTIgMnMxMCA0LjQ3NyAxMCAxME05LjQ0NyAxNC4zOThhLjc1Ljc1IDAgMSAwLS44OTQgMS4yMDRBNS43NyA1Ljc3IDAgMCAwIDEyIDE2Ljc1YTUuNzcgNS43NyAwIDAgMCAzLjQ0Ny0xLjE0OGEuNzUuNzUgMCAxIDAtLjg5NC0xLjIwNEE0LjI3IDQuMjcgMCAwIDEgMTIgMTUuMjVhNC4yNyA0LjI3IDAgMCAxLTIuNTUzLS44NTJNMTYgOS41YzAgLjgyOC0uNDQ4IDEuNS0xIDEuNXMtMS0uNjcyLTEtMS41cy40NDgtMS41IDEtMS41czEgLjY3MiAxIDEuNU05IDExYy41NTIgMCAxLS42NzIgMS0xLjVTOS41NTIgOCA5IDhzLTEgLjY3Mi0xIDEuNXMuNDQ4IDEuNSAxIDEuNSIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9zdmc+" alt="Default Profile Photo" class="img-thumbnail" style="width: 50px; height: 50px; border-radius: 50%;">
+                                        {% endif %}
+                                        {{ user.username }}
+                                    </a>
+                                    {% if session['username'] == 'OMKARKUMBHAR' %}
+                                        <button class="btn btn-danger btn-sm float-right" onclick="banUser('{{ user.id }}')">
+                                            <svg id="i-ban" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                                <circle cx="16" cy="16" r="14" />
+                                                <path d="M6 6 L26 26" />
+                                            </svg>
+                                        </button>
+                                    {% endif %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-9 col-sm-12">
+                <div class="card" style="border-radius: 15px;">
+                    <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                        <h5>Chat with {{ recipient }}</h5>
+                        <a href="{{ url_for('user_selector') }}" class="btn btn-outline-secondary d-md-none">Select User</a>
+                    </div>
+                    <div class="card-body" id="chat-body">
+                        <ul class="list-group messages-container" id="messages-list">
+                            {% for message in messages %}
+                                <li class="list-group-item {% if message.sender == session['username'] %}text-right{% else %}text-left{% endif %}" id="message-{{ message.id }}" data-id="{{ message.id }}" style="border-radius: 15px; margin-bottom: 10px;" ondblclick="toggleMessageSelection(this, '{{ message.id }}')">
+                                    {{ message.content }}
+                                    {% if message.image_url %}
+                                        <br>
+                                        <img src="{{ message.image_url }}" alt="Image" class="img-thumbnail" style="max-width: 150px; border-radius: 15px;" onclick="openImageModal('{{ message.image_url }}')">
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="card-footer" style="border-radius: 0 0 15px 15px;">
+                        <form id="messageForm" action="{{ url_for('chat', recipient=recipient) }}" method="POST" enctype="multipart/form-data">
+                            <div class="input-group">
+                                <input type="text" name="message" class="form-control" placeholder="Enter your message" style="border-radius: 25px;">
+                                <div class="input-group-append">
+                                    <label class="btn btn-outline-secondary mb-0" style="border-radius: 30%; margin-right: 10px; margin-left: 10px;">
+                                        <input type="file" name="image" id="imageInput" style="display: none;" onchange="previewImage(event)">
+                                        <svg id="i-image" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="#fcb69f" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                            <path d="M4 28 L28 28 28 4 4 4 4 28 Z M4 20 L12 12 20 20 28 12" />
+                                            <circle cx="9" cy="9" r="2" />
+                                        </svg>
+                                    </label>
+                                    <button class="btn btn-primary" type="submit" style="border-radius: 30%;">
+                                        <svg id="i-caret-right" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="#fcb69f" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                            <path d="M10 30 L26 16 10 2 Z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="imagePreview" style="margin-top: 10px;"></div>
+                        </form>
+                        <div id="deleteSelectedContainer" style="display: none; text-align: right; margin-top: 10px;">
+                            <button class="btn btn-danger" onclick="deleteSelectedMessages()">Delete Selected</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Image Preview</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" alt="Image Preview" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="manageUserModal" tabindex="-1" role="dialog" aria-labelledby="manageUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageUserModalLabel">Manage User</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="manageUserForm" action="{{ url_for('manage_user') }}" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="newUsername">New Username</label>
+                            <input type="text" class="form-control" id="newUsername" name="username" placeholder="Enter new username">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" name="password" placeholder="Enter new password">
+                        </div>
+                        <div class="form-group">
+                            <label for="profile_photo">Profile Photo</label>
+                            <input type="file" class="form-control" id="profile_photo" name="profile_photo">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const selectedMessages = new Set();
+        let userScrolledUp = false;
+
+        function toggleMessageSelection(messageElement, messageId) {
+            if (selectedMessages.has(messageId)) {
+                selectedMessages.delete(messageId);
+                messageElement.classList.remove('selected');
+            } else {
+                selectedMessages.add(messageId);
+                messageElement.classList.add('selected');
+            }
+            updateDeleteButtonVisibility();
+        }
+
+        function updateDeleteButtonVisibility() {
+            const deleteButtonContainer = document.getElementById('deleteSelectedContainer');
+            if (selectedMessages.size > 0) {
+                deleteButtonContainer.style.display = 'block';
+            } else {
+                deleteButtonContainer.style.display = 'none';
+            }
+        }
+
+        function fetchMessages() {
+            fetch('{{ url_for("get_messages", recipient=recipient) }}')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Fetched messages:', data);
+                    const messagesList = document.getElementById('messages-list');
+                    const selectedMessageIds = Array.from(selectedMessages);
+                    messagesList.innerHTML = '';
+                    data.forEach(message => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item';
+                        li.id = `message-${message.id}`;
+                        li.classList.add(message.sender === "{{ session['username'] }}" ? 'text-right' : 'text-left');
+                        li.style.borderRadius = '15px';
+                        li.style.marginBottom = '10px';
+                        li.setAttribute('data-id', message.id);
+                        li.setAttribute('ondblclick', `toggleMessageSelection(this, '${message.id}')`);
+                        li.innerHTML = `${message.content}`;
+                        if (message.image_url) {
+                            li.innerHTML += `<br><img src="${message.image_url}" alt="Image" class="img-thumbnail" style="max-width: 150px; border-radius: 15px;" onclick="openImageModal('${message.image_url}')">`;
+                        }
+                        li.innerHTML += `<br><small class="text-muted">${message.timestamp}</small>`;
+                        if (selectedMessageIds.includes(message.id.toString())) {
+                            li.classList.add('selected');
+                        }
+                        messagesList.appendChild(li);
+                    });
+                    updateDeleteButtonVisibility();
+                    if (!userScrolledUp) {
+                        scrollToBottom();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching messages:', error);
+                });
+        }
+
+        function deleteSelectedMessages() {
+            const messageIds = Array.from(selectedMessages);
+
+            fetch('/delete_messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message_ids: messageIds })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageIds.forEach(id => {
+                        const messageElement = document.getElementById(`message-${id}`);
+                        messageElement.remove();
+                    });
+                    selectedMessages.clear();
+                    updateDeleteButtonVisibility();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting messages:', error);
+            });
+        }
+
+        setInterval(fetchMessages, 3000);
+
+        function previewImage(event) {
+            const imagePreview = document.getElementById('imagePreview');
+            imagePreview.innerHTML = '';
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100px';
+                    img.style.maxHeight = '100px';
+                    img.style.borderRadius = '10px';
+                    imagePreview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function deleteMessage(messageId) {
+            fetch(`/delete_message/${messageId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const messageElement = document.getElementById(`message-${messageId}`);
+                    messageElement.remove();
+                }
+            });
+        }
+
+        function banUser(userId) {
+            fetch(`/ban_user/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const userElement = document.querySelector(`li a[href$="/chat/${userId}"]`).parentElement;
+                    userElement.remove();
+                }
+            });
+        }
+
+        function searchUsers() {
+            const searchInput = document.getElementById('user-search').value.toLowerCase();
+            const userList = document.getElementById('user-list');
+            const users = userList.getElementsByTagName('li');
+
+            for (let i = 0; i < users.length; i++) {
+                const user = users[i].getElementsByTagName('a')[0];
+                const username = user.textContent || user.innerText;
+                if (username.toLowerCase().indexOf(searchInput) > -1) {
+                    users[i].style.display = '';
+                } else {
+                    users[i].style.display = 'none';
+                }
+            }
+        }
+
+        function openImageModal(imageUrl) {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = imageUrl;
+            $('#imageModal').modal('show');
+        }
+
+        function scrollToBottom() {
+            const chatBody = document.getElementById('chat-body');
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            scrollToBottom();
+
+            const chatBody = document.getElementById('chat-body');
+            chatBody.addEventListener('scroll', function() {
+                const isScrolledToBottom = chatBody.scrollHeight - chatBody.clientHeight <= chatBody.scrollTop + 1;
+                userScrolledUp = !isScrolledToBottom;
+            });
+
+            const form = document.getElementById('messageForm');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(form);
+
+                fetch('{{ url_for("chat", recipient=recipient) }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.success && data.message) {
+                        const message = data.message;
+                        const messagesList = document.getElementById('messages-list');
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item ' + (message.sender === "{{ session['username'] }}" ? 'text-right' : 'text-left');
+                        li.id = `message-${message.id}`;
+                        li.setAttribute('data-id', message.id);
+                        li.style.borderRadius = '15px';
+                        li.style.marginBottom = '10px';
+                        li.ondblclick = function() { toggleMessageSelection(this, message.id); };
+                        li.innerHTML = `${message.content}`;
+                        if (message.image_url) {
+                            li.innerHTML += `<br><img src="${message.image_url}" alt="Image" class="img-thumbnail" style="max-width: 150px; border-radius: 15px;" onclick="openImageModal('${message.image_url}')">`;
+                        }
+                        li.innerHTML += `<br><small class="text-muted">${message.timestamp}</small>`;
+                        messagesList.appendChild(li);
+
+                        document.querySelector('input[name="message"]').value = '';
+                        document.querySelector('input[name="image"]').value = '';
+                        document.getElementById('imagePreview').innerHTML = '';
+
+                        scrollToBottom();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                });
+            });
+        });
+
+        fetchMessages();
+    </script>
+{% endblock %}

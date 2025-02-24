@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Chat container styles */
+    .chat-messages {
+        height: 65vh;
+        overflow-y: auto;
+    }
+    
+    /* Message styles */
+    .message {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 15px;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .message.text-right {
+        background-color: #e6f7ff;
+        margin-left: 20%;
+        border-radius: 15px 15px 0 15px;
+    }
+    
+    .message.text-left {
+        background-color: #f0f0f0;
+        margin-right: 20%;
+        border-radius: 15px 15px 15px 0;
+    }
+    
+    /* Message selection */
+    .selected {
+        background-color: #ff7272;
+        transition: background-color 0.3s ease-in-out;
+    }
+    
+    /* Message glow animation */
+    @keyframes message-glow {
+        0% {
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            transform: scale(1);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        35% {
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+            transform: scale(1.02);
+            background-color: rgba(0, 123, 255, 0.2);
+        }
+        100% {
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            transform: scale(1);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+    }
+    
+    .message-glow {
+        animation: message-glow 0.5s ease-in-out;
+    }
+    
+    /* Reply preview */
+    .reply-preview {
+        background: #f8f9fa;
+        padding: 8px;
+        border-radius: 8px;
+        border-left: 3px solid #007bff;
+        margin-bottom: 10px;
+    }
+    
+    /* File attachments */
+    .attachment-container {
+        margin: 8px 0;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 767px) {
+        .card-body, .card-footer {
+            padding: 10px;
+        }
+        .message {
+            font-size: 14px;
+        }
+        .img-thumbnail {
+            max-width: 100px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Members Sidebar -->
+        <div class="col-md-3 mb-3">
+            <div class="card" style="border-radius: 15px;">
+                <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                    <h5>{{ group.name }}</h5>
+                    {% if group.photo_url %}
+                    <img src="{{ group.photo_url }}" alt="Group Photo" 
+                         class="img-thumbnail rounded-circle mb-2" 
+                         style="width: 80px; height: 80px;">
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Members</h6>
+                    <div class="members-list">
+                        {% for member in group.members %}
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ member.profile_photo if member.profile_photo else url_for('static', filename='default_avatar.png') }}"
+                                     class="rounded-circle mr-2"
+                                     style="width: 30px; height: 30px;">
+                                <span>{{ member.username }}</span>
+                            </div>
+                            {% if current_user.id == group.creator_id and member.id != current_user.id %}
+                            <button class="btn btn-danger btn-sm" 
+                                    onclick="removeMember('{{ group.id }}', '{{ member.id }}')" style="display: flex; align-items: center; gap: 5px;">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMyA3aC0ydjRIN3YyaDR2NHgydi00aDR2LTJoLTR6Ii8+PC9zdmc+" 
+                                     alt="Remove Member" 
+                                     style="width: 20px; height: 20px; filter: invert(100%);">
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if current_user.id == group.creator_id %}
+                    <div class="add-member-form mt-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" 
+                                   placeholder="Add member..." 
+                                   id="memberSearch"
+                                   onkeyup="searchMembers(this.value)">
+                            <div class="input-group-append">
+                                <button class="btn btn-success btn-sm" onclick="addMember()" style="display: flex; align-items: center; gap: 5px;">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCA5di0zaDJ2M2gzdjJoLTN2M2gtMnYtM2gtM3YtMmgzem0tOSAzYTMgMyAwIDEgMCAwLTYgMyAzIDAgMCAwIDAgNm0tNyA5YTcgNyAwIDEgMSAxNCAwSDJ6Ii8+PC9zdmc+" 
+                                         alt="Add Member" 
+                                         style="width: 20px; height: 20px; filter: invert(100%);">
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                        <div id="searchResults" class="list-group mt-2" style="display: none;"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="col-md-9">
+            <div class="card" style="border-radius: 15px;">
+                <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Group Chat</h5>
+                        <div>
+                            {% if current_user.id == group.creator_id %}
+                            <button class="btn btn-outline-secondary btn-sm" onclick="editGroup()" style="display: flex; align-items: center; gap: 5px;">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0yIDE4di0uOHEwLS44NS40MjUtMS41NjJUMy42IDE0LjU1cTEuNDI1LS43MjUgMi45NjMtMS4xNXQzLjEzNy0uNDI1cS4zNSAwIC41NS4zMTN0LjA3NS42NjJxLS4xNS41MjUtLjIyNSAxLjA1dC0uMDc1IDEuMDc1cTAgLjcyNS4xNSAxLjRUMTAuNiAxOC44cS4yLjQyNS0uMDM3LjgxM1Q5LjkgMjBINHEtLjgyNSAwLTEuNDEyLS41ODdUMiAxOG0xNSAwcS44MjUgMCAxLjQxMy0uNTg3VDE5IDE2dC0uNTg3LTEuNDEyVDE3IDE0dC0xLjQxMi41ODhUMTUgMTZ0LjU4OCAxLjQxM1QxNyAxOG0tNy02cS0xLjY1IDAtMi44MjUtMS4xNzVUNiA4dDEuMTc1LTIuODI1VDEwIDR0Mi44MjUgMS4xNzVUMTQgOHQtMS4xNzUgMi44MjVUMTAgMTIiLz48L3N2Zz4=" 
+                                     alt="Edit Group" 
+                                     style="width: 20px; height: 20px; filter: invert(50%);">
+                                Edit
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-outline-secondary btn-sm" onclick="leaveGroup()" style="display: flex; align-items: center; gap: 5px;">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMgM2ExIDEgMCAwIDAtMSAxdjEyYTEgMSAwIDEgMCAyIDBWNGExIDEgMCAwIDAtMS0xbTEwLjI5MyA5LjI5M2ExIDEgMCAwIDAgMS40MTQgMS40MTRsMy0zYTEgMSAwIDAgMCAwLTEuNDE0bC0zLTNhMSAxIDAgMSAwLTEuNDE0IDEuNDE0TDE0LjU4NiA5SDdhMSAxIDAgMSAwIDAgMmg3LjU4NnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==" 
+                                     alt="Leave Group" 
+                                     style="width: 20px; height: 20px; filter: invert(50%);">
+                                Leave
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Display Area -->
+                <div class="card-body chat-messages" id="chat-messages">
+                    {% for message in messages %}
+                        <div class="message {% if message.user_id == current_user.id %}text-right{% endif %}" 
+                             id="message-{{ message.id }}" 
+                             data-id="{{ message.id }}"
+                             ondblclick="toggleMessageSelection(this, '{{ message.id }}')">
+                            {% if message.reply_to %}
+                            <div class="reply-preview" onclick="scrollToMessage('{{ message.reply_to.id }}')">
+                                <small class="text-muted">Replying to: {{ message.reply_to.content }}</small>
+                            </div>
+                            {% endif %}
+                            <small class="text-muted">{{ message.user.username }}</small>
+                            <p class="mb-1">{{ message.content }}</p>
+                            {% if message.image_url %}
+                            <img src="{{ message.image_url }}" alt="Image" class="img-thumbnail" 
+                                 style="max-width: 200px;" onclick="openImageModal('{{ message.image_url }}')">
+                            {% endif %}
+                            {% if message.file_url %}
+                            <div class="mt-2">
+                                {% if message.file_url.endswith('.mp4') or message.file_url.endswith('.webm') %}
+                                <video controls style="max-width: 200px;">
+                                    <source src="{{ message.file_url }}" type="video/mp4">
+                                </video>
+                                {% elif message.file_url.endswith('.mp3') or message.file_url.endswith('.wav') %}
+                                <audio controls>
+                                    <source src="{{ message.file_url }}" type="audio/mpeg">
+                                </audio>
+                                {% else %}
+                                <a href="{{ message.file_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download"></i> {{ message.file_name }}
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <div class="message-footer">
+                                <small class="text-muted">{{ message.timestamp.strftime('%H:%M') }}</small>
+                                <button class="btn btn-sm btn-link" onclick="replyToMessage('{{ message.id }}', '{{ message.content }}')">Reply</button>
+                                {% if message.user_id == current_user.id %}
+                                <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage('{{ message.id }}')">Delete</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Message Input Area -->
+                <div class="card-footer" style="border-radius: 0 0 15px 15px;">
+                    <form id="messageForm" action="{{ url_for('send_group_message', group_id=group.id) }}" method="POST" enctype="multipart/form-data">
+                        <div id="replyPreview" style="display: none;"></div>
+                        <div class="input-group">
+                            <input type="text" name="message" class="form-control" placeholder="Type your message...">
+                            <div class="input-group-append">
+                                <label class="btn btn-outline-secondary mb-0">
+                                    <input type="file" name="file" style="display: none;" onchange="previewFile(event)">
+                                    <i class="fas fa-paperclip"></i>
+                                </label>
+                                <button class="btn btn-primary" type="submit">Send</button>
+                            </div>
+                        </div>
+                        <div id="filePreview" class="mt-2"></div>
+                        <div class="progress" id="uploadProgress" style="display: none;">
+                            <div class="progress-bar" role="progressbar"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Preview</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" class="img-fluid" alt="Preview">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        var groupId = "{{ group.id }}";
+        var lastMessageId = 0;
+
+        function fetchMessages() {
+            $.ajax({
+                url: '/group/' + groupId + '/get_messages?last_message_id=' + lastMessageId,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    if (data && data.length > 0) {
+                        data.forEach(function(message) {
+                            var messageElement = createMessageElement(message);
+                            $('#chat-window').append(messageElement);
+                            lastMessageId = message.id;
+                        });
+                        // Scroll to the bottom of the chat window
+                        $('#chat-window').scrollTop($('#chat-window')[0].scrollHeight);
+                    }
+                    fetchMessages(); // Call again for long polling
+                },
+                error: function(error) {
+                    console.error('Error fetching messages:', error);
+                    // Retry after a delay
+                    setTimeout(function() {
+                        fetchMessages();
+                    }, 5000); // Retry after 5 seconds
+                }
+            });
+        }
+
+        function createMessageElement(message) {
+            var messageElement = $('<div class="message">');
+            var senderElement = $('<div class="message-sender">').text(message.user.username + ':');
+            var contentElement = $('<div class="message-content">').text(message.content);
+
+            messageElement.append(senderElement);
+            messageElement.append(contentElement);
+
+            return messageElement;
+        }
+
+        // Initial call to fetch messages
+        fetchMessages();
+
+        // Form submission handler (existing code)
+        $('#send-message-form').on('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#message').val(''); // Clear the message input
+                    // No need to manually add the message to the chat window here,
+                    // as the long polling will automatically fetch and display it.
+                },
+                error: function(error) {
+                    console.error('Error sending message:', error);
+                }
+            });
+        });
+    });
+</script>
+<script>
+// Include all the JavaScript functions from the chat.html file here
+// I'll show you the essential ones, you can add the rest as needed
+
+let replyMessageId = null;
+let userScrolledUp = false;
+
+// Add these variables at the top of your scripts
+let lastMessageId = 0;
+const POLLING_INTERVAL = 3000; // 3 seconds
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function scrollToMessage(messageId) {
+    const message = document.getElementById(`message-${messageId}`);
+    if (message) {
+        message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        message.classList.add('highlight');
+        setTimeout(() => message.classList.remove('highlight'), 2000);
+    }
+}
+
+function replyToMessage(messageId, content) {
+    replyMessageId = messageId;
+    const preview = document.getElementById('replyPreview');
+    preview.innerHTML = `
+        <div class="reply-preview">
+            <small class="text-muted">Replying to: ${content}</small>
+            <button type="button" class="close" onclick="clearReply()">&times;</button>
+        </div>
+    `;
+    preview.style.display = 'block';
+}
+
+function clearReply() {
+    replyMessageId = null;
+    const preview = document.getElementById('replyPreview');
+    preview.style.display = 'none';
+}
+
+function previewFile(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('filePreview');
+    const uploadProgress = document.getElementById('uploadProgress');
+    preview.innerHTML = '';
+    
+    if (file) {
+        if (file.size > 20 * 1024 * 1024) {
+            alert('File size must be under 20 MB');
+            event.target.value = '';
+            return;
+        }
+
+        // Preview container
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'preview-container';
+        previewContainer.style.position = 'relative';
+        previewContainer.style.display = 'inline-block';
+
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.style.maxWidth = '200px';
+            img.className = 'img-thumbnail';
+            const reader = new FileReader();
+            reader.onload = e => img.src = e.target.result;
+            reader.readAsDataURL(file);
+            previewContainer.appendChild(img);
+        } else if (file.type.startsWith('video/')) {
+            const video = document.createElement('video');
+            video.style.maxWidth = '200px';
+            video.controls = true;
+            const reader = new FileReader();
+            reader.onload = e => video.src = e.target.result;
+            reader.readAsDataURL(file);
+            previewContainer.appendChild(video);
+        } else if (file.type.startsWith('audio/')) {
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            const reader = new FileReader();
+            reader.onload = e => audio.src = e.target.result;
+            reader.readAsDataURL(file);
+            previewContainer.appendChild(audio);
+        } else {
+            const fileIcon = document.createElement('div');
+            fileIcon.innerHTML = `
+                <i class="fas fa-file fa-3x text-primary"></i>
+                <p class="mt-2 mb-0">${file.name}</p>
+            `;
+            previewContainer.appendChild(fileIcon);
+        }
+
+        // Add remove button
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'btn btn-danger btn-sm position-absolute';
+        removeButton.style.top = '5px';
+        removeButton.style.right = '5px';
+        removeButton.innerHTML = '&times;';
+        removeButton.onclick = function() {
+            preview.innerHTML = '';
+            document.getElementById('fileInput').value = '';
+            uploadProgress.style.display = 'none';
+        };
+        previewContainer.appendChild(removeButton);
+
+        preview.appendChild(previewContainer);
+    }
+}
+
+// Add this function to poll for new messages
+function pollNewMessages() {
+    const groupId = '{{ group.id }}';
+    fetch(`/group/${groupId}/messages?after=${lastMessageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(message => {
+                    addMessageToChat(message);
+                    lastMessageId = Math.max(lastMessageId, message.id);
+                });
+                
+                if (!userScrolledUp) {
+                    scrollToBottom();
+                }
+            }
+        })
+        .catch(error => console.error('Error polling messages:', error));
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+    
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.addEventListener('scroll', function() {
+        userScrolledUp = chatMessages.scrollHeight - chatMessages.clientHeight > chatMessages.scrollTop + 1;
+    });
+
+    // Set up form submission
+    const form = document.getElementById('messageForm');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        if (replyMessageId) {
+            formData.append('reply_to', replyMessageId);
+        }
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = uploadProgress.querySelector('.progress-bar');
+        
+        uploadProgress.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+        
+        // Send message using fetch
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                form.reset();
+                clearReply();
+                document.getElementById('filePreview').innerHTML = '';
+                if (!userScrolledUp) {
+                    scrollToBottom();
+                }
+                addMessageToChat(data.message);
+            }
+            uploadProgress.style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending message');
+            uploadProgress.style.display = 'none';
+        });
+    });
+
+    // Set initial lastMessageId
+    const messages = document.querySelectorAll('.message');
+    if (messages.length > 0) {
+        lastMessageId = parseInt(messages[messages.length - 1].getAttribute('data-id'));
+    }
+    
+    // Start polling
+    setInterval(pollNewMessages, POLLING_INTERVAL);
+});
+
+function addMessageToChat(message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    const currentUserId = JSON.parse('{{ current_user.id | tojson | safe }}'); // Get current user ID from Jinja
+    
+    // Fix: Properly compare user IDs
+    messageDiv.className = `message ${message.user_id === currentUserId ? 'text-right' : ''}`;
+    messageDiv.id = `message-${message.id}`;
+    messageDiv.setAttribute('data-id', message.id);
+    messageDiv.setAttribute('ondblclick', `toggleMessageSelection(this, '${message.id}')`);
+
+    let messageHTML = '';
+
+    // Add reply preview if exists
+    if (message.reply_to) {
+        messageHTML += `
+            <div class="reply-preview" onclick="scrollToMessage('${message.reply_to.id}')">
+                <small class="text-muted">Replying to: ${message.reply_to.content}</small>
+            </div>`;
+    }
+
+    // Add message content
+    messageHTML += `
+        <small class="text-muted">${message.user.username}</small>
+        <p class="mb-1">${message.content}</p>`;
+
+    // Add attachments
+    if (message.image_url) {
+        messageHTML += `
+            <img src="${message.image_url}" alt="Image" class="img-thumbnail" 
+                 style="max-width: 200px;" onclick="openImageModal('${message.image_url}')">`;
+    }
+
+    if (message.file_url) {
+        messageHTML += `<div class="mt-2">`;
+        if (message.file_url.endsWith('.mp4') || message.file_url.endsWith('.webm')) {
+            messageHTML += `
+                <video controls style="max-width: 200px;">
+                    <source src="${message.file_url}" type="video/mp4">
+                </video>`;
+        } else if (message.file_url.endsWith('.mp3') || message.file_url.endsWith('.wav')) {
+            messageHTML += `
+                <audio controls>
+                    <source src="${message.file_url}" type="audio/mpeg">
+                </audio>`;
+        } else {
+            messageHTML += `
+                <a href="${message.file_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-download"></i> ${message.file_name}
+                </a>`;
+        }
+        messageHTML += `</div>`;
+    }
+
+    // Fix: Use currentUserId in the delete button check
+    messageHTML += `
+        <div class="message-footer">
+            <small class="text-muted">${new Date(message.timestamp).toLocaleTimeString()}</small>
+            <button class="btn btn-sm btn-link" onclick="replyToMessage('${message.id}', '${message.content}')">Reply</button>
+            ${message.user_id === currentUserId ? `
+                <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage('${message.id}')">Delete</button>
+            ` : ''}
+        </div>`;
+
+    messageDiv.innerHTML = messageHTML;
+    chatMessages.appendChild(messageDiv);
+}
+</script>
+{% endblock %}

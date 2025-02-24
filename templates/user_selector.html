@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .list-group-item {
+            font-size: 14px;
+        }
+        .img-thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+        }
+        .search-container {
+            margin-bottom: 1rem;
+        }
+
+        .user-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-item a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .user-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        /* Custom scrollbar for user list */
+        .user-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .user-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .user-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .user-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Animation for search results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-item.search-result {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid mt-3">
+        <div class="card" style="border-radius: 15px;">
+            <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
+                <h5>Users</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="user-search" class="form-control" placeholder="Search users">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchUsers()">
+                            <svg id="i-search" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                <circle cx="14" cy="14" r="12" />
+                                <path d="M23 23 L30 30" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <ul class="list-group list-group-flush" id="user-list" style="max-height: 400px; overflow-y: auto;">
+                {% for user in users %}
+                    {% if user.username != session['username'] %}
+                        <li class="list-group-item">
+                            <a href="{{ url_for('chat', recipient=user.username) }}">
+                                {% if user.profile_photo %}
+                                    <img src="{{ user.profile_photo }}" alt="Profile Photo" class="img-thumbnail" style="width: 50px; height: 50px; border-radius: 50%;">
+                                {% else %}
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48ZyBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLWRhc2hhcnJheT0iMjgiIHN0cm9rZS1kYXNob2Zmc2V0PSIyOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDIxdi0xYzAgLTMuMzEgMi42OSAtNiA2IC02aDRjMy4zMSAwIDYgMi42OSA2IDZ2MSI+PGFuaW1hdGUgZmlsbD0iZnJlZXplIiBhdHRyaWJ1dGVOYW1lPSJzdHJva2UtZGFzaG9mZnNldCIgZHVyPSIwLjRzIiB2YWx1ZXM9IjI4OzAiLz48L3BhdGg+PHBhdGggZD0iTTEyIDExYy0yLjIxIDAgLTQgLTEuNzkgLTQgLTRjMCAtMi4yMSAxLjc5IC00IDQgLTRjMi4yMSAwIDQgMS43OSA0IDRjMCAyLjIxIC0xLjc5IDQgLTQgNFoiPjxhbmltYXRlIGZpbGw9ImZyZWV6ZSIgYXR0cmlidXRlTmFtZT0ic3Ryb2tlLWRhc2hvZmZzZXQiIGJlZ2luPSIwLjRzIiBkdXI9IjAuNHMiIHZhbHVlcz0iMjg7MCIvPjwvcGF0aD48L2c+PC9zdmc+" alt="Default Profile" class="img-thumbnail" style="width: 50px; height: 50px; border-radius: 50%;">
+                                {% endif %}
+                                {{ user.username }}
+                            </a>
+                            {% if session['username'] == 'OMKARKUMBHAR' %}
+                                <button class="btn btn-danger btn-sm float-right" onclick="banUser('{{ user.id }}')">
+                                    <svg id="i-ban" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                        <circle cx="16" cy="16" r="14" />
+                                        <path d="M6 6 L26 26" />
+                                    </svg>
+                                </button>
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-3">
+        <!-- Desktop User Selector (visible only on md and larger screens) -->
+        <div class="d-none d-md-block">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Select User</h5>
+                    <div class="search-container">
+                        <div class="input-group">
+                            <input type="text" 
+                                   id="userSearch" 
+                                   class="form-control" 
+                                   placeholder="Search users..."
+                                   aria-label="Search users">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" 
+                                        type="button" 
+                                        onclick="searchUsers()">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="user-list" id="userList">
+                        {% for user in users %}
+                            <div class="user-item">
+                                <a href="{{ url_for('chat', recipient=user.username) }}" class="d-flex align-items-center p-2">
+                                    <img src="{{ user.profile_photo if user.profile_photo else url_for('static', filename='default_avatar.png') }}" 
+                                         alt="{{ user.username }}"
+                                         class="rounded-circle mr-2"
+                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                    <span>{{ user.username }}</span>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function searchUsers() {
+            const searchInput = document.getElementById('user-search').value.toLowerCase();
+            const userList = document.getElementById('user-list');
+            const users = userList.getElementsByTagName('li');
+
+            for (let i = 0; i < users.length; i++) {
+                const user = users[i].getElementsByTagName('a')[0];
+                const username = user.textContent || user.innerText;
+                if (username.toLowerCase().indexOf(searchInput) > -1) {
+                    users[i].style.display = '';
+                } else {
+                    users[i].style.display = 'none';
+                }
+            }
+
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const userItems = document.getElementsByClassName('user-item');
+            let hasResults = false;
+
+            Array.from(userItems).forEach(item => {
+                const username = item.querySelector('span').textContent.toLowerCase();
+                if (username.includes(searchTerm)) {
+                    item.style.display = '';
+                    item.classList.add('search-result');
+                    hasResults = true;
+                } else {
+                    item.style.display = 'none';
+                    item.classList.remove('search-result');
+                }
+            });
+
+            // Show no results message if needed
+            const noResultsMsg = document.getElementById('noResultsMessage');
+            if (!hasResults) {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('div');
+                    msg.id = 'noResultsMessage';
+                    msg.className = 'text-center text-muted p-3';
+                    msg.textContent = 'No users found';
+                    document.getElementById('userList').appendChild(msg);
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        }
+
+        // Add event listener for real-time search
+        document.getElementById('userSearch').addEventListener('keyup', searchUsers);
+
+        function banUser(userId) {
+            fetch(`/ban_user/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const userElement = document.querySelector(`li a[href$="/chat/${userId}"]`).parentElement;
+                    userElement.remove();
+                }
+            });
+        }
+    </script>
+{% endblock %}
