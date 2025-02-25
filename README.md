@@ -52,3 +52,5 @@ If you're running this project for the first time after forking, install the dep
 
 ```bash
 pip install Flask Flask-SQLAlchemy Werkzeug Flask-Migrate Flask-Login SQLAlchemy
+
+![Screenshot 2025-02-25 202330](https://github.com/user-attachments/assets/d4ee9a5c-cd4b-4d6b-9cea-0120424a4a51)
