@@ -1,3 +1,6 @@
+# 🗨️ OSChats  
+
+A real-time chat application with authentication, messaging, and admin controls.
 ## 🚀 Features  
 
 ### 🔐 User Authentication  
