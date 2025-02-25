@@ -291,7 +291,86 @@
             margin-left: 0.5rem;
             font-size: 0.875rem;
         }
+
+        /* Unread message indicator */
+        .unread-message {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107;
+        }
+
+        /* Message status indicators */
+        .message-status {
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .message-sent {
+            color: #999;
+        }
+
+        .message-delivered {
+            color: #2196F3;
+        }
+
+        .message-read {
+            color: #4CAF50;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 15px;
+            display: none;
+            margin-bottom: 10px;
+        }
+
+        /* Online status indicator */
+        .user-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-online {
+            background-color: #4CAF50;
+        }
+
+        .status-offline {
+            background-color: #9e9e9e;
+        }
+
+        /* Improve message bubbles */
+        .list-group-item.text-right {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: rgb(48, 33, 33);
+        }
+
+        .list-group-item.text-left {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        .status-online {
+            background-color: #2ecc71;
+        }
+        .status-offline {
+            background-color: #95a5a6;
+        }
+        .last-seen {
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 {% endblock %}
 
 {% block content %}
@@ -359,7 +438,21 @@
             <div class="col-md-8 col-sm-12">
                 <div class="card" style="border-radius: 15px;">
                     <div class="card-header" style="background: linear-gradient(to right, #ffecd2, #fcb69f); border-radius: 15px 15px 0 0;">
-                        <h5>Chat with {{ recipient }}</h5>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ recipient_user.profile_photo or url_for('static', filename='default_avatar.png') }}" 
+                                 class="rounded-circle mr-2" 
+                                 style="width: 40px; height: 40px; object-fit: cover;">
+                            <div>
+                                <h5 class="mb-0">{{ recipient }}
+                                    <span class="status-indicator" id="statusIndicator"></span>
+                                </h5>
+                                <small class="text-muted">
+                                    <span class="user-status" id="userStatus"></span>
+                                    <!-- <span id="userStatusText">Offline</span> -->
+                                </small>
+                                <small class="last-seen" id="lastSeen"></small>
+                            </div>
+                        </div>
                         <a href="{{ url_for('user_selector') }}" class="btn btn-outline-secondary d-md-none">Select User</a>
                         <button class="btn btn-outline-secondary float-right" onclick="openManageUserModal()" style="display: flex; align-items: center; gap: 5px;">
                             <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0yIDE4di0uOHEwLS44NS40MjUtMS41NjJUMy42IDE0LjU1cTEuNDI1LS43MjUgMi45NjMtMS4xNXQzLjEzNy0uNDI1cS4zNSAwIC41NS4zMTN0LjA3NS42NjJxLS4xNS41MjUtLjIyNSAxLjA1dC0uMDc1IDEuMDc1cTAgLjcyNS4xNSAxLjRUMTAuNiAxOC44cS4yLjQyNS0uMDM3LjgxM1Q5LjkgMjBINHEtLjgyNSAwLTEuNDEyLS41ODdUMiAxOG0xNSAwcS44MjUgMCAxLjQxMy0uNTg3VDE5IDE2dC0uNTg3LTEuNDEyVDE3IDE0dC0xLjQxMi41ODhUMTUgMTZ0LjU4OCAxLjQxM1QxNyAxOG0tNy02cS0xLjY1IDAtMi44MjUtMS4xNzVUNiA4dDEuMTc1LTIuODI1VDEwIDR0Mi44MjUgMS4xNzVUMTQgOHQtMS4xNzUgMi44MjVUMTAgMTJtNS44NSA4LjJsLS4xNS0uN3EtLjMtLjEyNS0uNTYyLS4yNjJUMTQuNiAxOC45bC0uNzI1LjIyNXEtLjMyNS4xLS42MzctLjAyNXQtLjQ4OC0uNGwtLjItLjM1cS0uMTc1LS4zLS4xMjUtLjY1dC4zMjUtLjU3NWwuNTUtLjQ3NXEtLjA1LS4zNS0uMDUtLjY1dC4wNS0uNjVsLS41NS0uNDc1cS0uMjc1LS4yMjUtLjMyNS0uNTYzdC4xMjUtLjYzN2wuMjI1LS4zNzVxLjE3NS0uMjc1LjQ3NS0uNHQuNjI1LS4wMjVsLjcyNS4yMjVxLjI3NS0uMi41MzgtLjMzOHQuNTYyLS4yNjJsLjE1LS43MjVxLjA3NS0uMzUuMzM4LS41NjJUMTYuOCAxMWguNHEuMzUgMCAuNjEzLjIyNXQuMzM3LjU3NWwuMTUuN3EuMy4xMjUuNTYyLjI3NXQuNTM4LjM3NWwuNjc1LS4yMjVxLjM1LS4xMjUuNjc1IDB0LjUuNDI1bC4yLjM1cS4xNzUuMy4xMjUuNjV0LS4zMjUuNTc1bC0uNTUuNDc1cS4wNS4zLjA1LjYyNXQtLjA1LjYyNWwuNTUuNDc1cS4yNzUuMjI1LjMyNS41NjN0LS4xMjUuNjM3bC0uMjI1LjM3NXEtLjE3NS4yNzUtLjQ3NS40dC0uNjI1LjAyNUwxOS40IDE4LjlxLS4yNzUuMi0uNTM4LjMzN3QtLjU2Mi4yNjNsLS4xNS43MjVxLS4wNzUuMzUtLjMzNy41NjNUMTYuNyAyMWgtLjRxLS4zNSAwLS42MTItLjIyNXQtLjMzOC0uNTc1Ii8+PC9zdmc+" 
@@ -377,7 +470,9 @@
                     <div class="card-body" id="chat-body">
                         <ul class="list-group messages-container" id="messages-list">
                             {% for message in messages %}
-                                <li class="list-group-item {% if message.sender == session['username'] %}text-right{% else %}text-left{% endif %}" id="message-{{ message.id }}" data-id="{{ message.id }}" style="border-radius: 15px; margin-bottom: 10px;" ondblclick="toggleMessageSelection(this, '{{ message.id }}')">
+                                <li class="list-group-item {% if message.sender == session['username'] %}text-right{% else %}text-left{% endif %} 
+                                    {% if not message.is_read and message.sender != session['username'] %}unread-message{% endif %}"
+                                    id="message-{{ message.id }}" data-id="{{ message.id }}" style="border-radius: 15px; margin-bottom: 10px;" ondblclick="toggleMessageSelection(this, '{{ message.id }}')">
                                     {% if message.reply_to %}
                                         <div class="reply-preview" style="border-left: 2px solid #ccc; padding-left: 10px; margin-bottom: 5px;" onclick="scrollToMessage('{{ message.reply_to.id }}')">
                                             <small class="text-muted">
@@ -407,6 +502,7 @@
                                     <br>
                                     <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                                     <button class="btn btn-sm btn-link" onclick="replyToMessage('{{ message.id }}', '{{ message.content }}')">Reply</button>
+                                    
                                 </li>
                             {% endfor %}
                         </ul>
@@ -439,6 +535,9 @@
                         </form>
                         <div id="deleteSelectedContainer" style="display: none; text-align: right; margin-top: 10px;">
                             <button class="btn btn-danger" onclick="deleteSelectedMessages()">Delete Selected</button>
+                        </div>
+                        <div class="typing-indicator" id="typingIndicator">
+                            {{ recipient }} is typing...
                         </div>
                     </div>
                 </div>
@@ -1183,5 +1282,206 @@
         // Initialize admin controls if user is admin
         showAdminControls();
     });
+
+    // Typing indicator functionality
+    let typingTimer;
+    const messageInput = document.querySelector('input[name="message"]');
+    const typingIndicator = document.getElementById('typingIndicator');
+
+    messageInput.addEventListener('input', function() {
+        clearTimeout(typingTimer);
+        socket.emit('typing', { recipient: '{{ recipient }}' });
+        
+        typingTimer = setTimeout(() => {
+            socket.emit('stop_typing', { recipient: '{{ recipient }}' });
+        }, 1000);
+    });
+
+    // Update message status
+    function updateMessageStatus(messageId, status) {
+        const statusElement = document.getElementById(`status-${messageId}`);
+        if (statusElement) {
+            statusElement.innerHTML = status === 'read' 
+                ? '<i class="fas fa-check-double message-read"></i>'
+                : '<i class="fas fa-check message-delivered"></i>';
+        }
+    }
+
+    // Mark messages as read when they become visible
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const messageId = entry.target.getAttribute('data-id');
+                if (!entry.target.classList.contains('text-right')) {
+                    fetch(`/mark_message_read/${messageId}`, { method: 'POST' });
+                    entry.target.classList.remove('unread-message');
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('.list-group-item').forEach(message => {
+        observer.observe(message);
+    });
+
+    let statusCheckInterval;
+
+    function updateOnlineStatus() {
+        fetch('/update_online_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+
+    function checkUserStatus() {
+        fetch(`/get_user_status/{{ recipient }}`)
+            .then(response => response.json())
+            .then(data => {
+                const statusIndicator = document.getElementById('statusIndicator');
+                const lastSeen = document.getElementById('lastSeen');
+                
+                if (data.is_online) {
+                    statusIndicator.className = 'status-indicator status-online';
+                    lastSeen.textContent = 'Online';
+                } else {
+                    statusIndicator.className = 'status-indicator status-offline';
+                    const lastSeenDate = new Date(data.last_seen);
+                    lastSeen.textContent = `Last seen ${timeago.format(lastSeenDate)}`;
+                }
+            });
+    }
+
+    // Update current user's status every 30 seconds
+    setInterval(updateOnlineStatus, 30000);
+
+    // Check recipient's status every 10 seconds
+    statusCheckInterval = setInterval(checkUserStatus, 10000);
+
+    // Initial status check
+    checkUserStatus();
+
+    // Update status when page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            updateOnlineStatus();
+            checkUserStatus();
+        }
+    });
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', function() {
+        clearInterval(statusCheckInterval);
+    });
+
+    // Add this function after your existing JavaScript code
+    function updateMessageReadStatus() {
+        const unreadMessages = document.querySelectorAll('.message:not(.message-read)');
+        
+        unreadMessages.forEach(message => {
+            if (isElementInViewport(message) && message.dataset.sender !== '{{ session.username }}') {
+                fetch('/mark_message_read', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message_id: message.dataset.messageId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update message status indicator
+                        const statusIndicator = message.querySelector('.message-status');
+                        if (statusIndicator) {
+                            statusIndicator.innerHTML = '<i class="fas fa-check-double text-primary"></i>';
+                        }
+                        message.classList.add('message-read');
+                    }
+                });
+            }
+        });
+    }
+
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+
+    // Add these event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial check for visible messages
+        updateMessageReadStatus();
+        
+        // Check when scrolling
+        document.querySelector('.message-container').addEventListener('scroll', updateMessageReadStatus);
+        
+        // Check periodically for new messages
+        setInterval(updateMessageReadStatus, 5000);
+    });
+
+    // Update your existing message template
+    function createMessageElement(message) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${message.sender === '{{ session.username }}' ? 'sent' : 'received'}`;
+        messageEl.dataset.messageId = message.id;
+        messageEl.dataset.sender = message.sender;
+        
+        // Add message content
+        messageEl.innerHTML = `
+            <div class="message-content">${message.content}</div>
+            <div class="message-footer">
+                <small class="text-muted">
+                    
+                    ${message.sender === '{{ session.username }}' ? 
+                        `<span class="message-status">
+                            ${message.is_read ? 
+                                '<i class="fas fa-check-double text-primary"></i>' : 
+                                '<i class="fas fa-check"></i>'}
+                        </span>` : ''}
+                </small>
+            </div>
+        `;
+        
+        return messageEl;
+    }
+
+    function pollMessages() {
+        fetch(`/messages/${recipient}`)
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(message => {
+                    if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+                        const messageEl = createMessageElement(message);
+                        document.querySelector('.message-container').appendChild(messageEl);
+                        
+                        // Update read status for existing messages
+                        if (message.is_read) {
+                            const statusIndicator = messageEl.querySelector('.message-status');
+                            if (statusIndicator) {
+                                statusIndicator.innerHTML = '<i class="fas fa-check-double text-primary"></i>';
+                            }
+                            messageEl.classList.add('message-read');
+                        }
+                    }
+                });
+                
+                // Check read status for visible messages
+                // updateMessageReadStatus();
+            });
+    }
+
+    // Update polling interval
+    setInterval(pollMessages, 3000);
 </script>
+
+<!-- Add timeago.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
 {% endblock %}

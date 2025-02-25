@@ -502,20 +502,7 @@
                                     <br>
                                     <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                                     <button class="btn btn-sm btn-link" onclick="replyToMessage('{{ message.id }}', '{{ message.content }}')">Reply</button>
-                                    <div class="message-footer">
-                                        <small class="text-muted">
-                                            {{ message.timestamp.strftime('%H:%M') }}
-                                            {% if message.sender == session['username'] %}
-                                                <span class="message-status" id="status-{{ message.id }}">
-                                                    {% if message.is_read %}
-                                                        <i class="fas fa-check-double message-read"></i>
-                                                    {% else %}
-                                                        <i class="fas fa-check message-sent"></i>
-                                                    {% endif %}
-                                                </span>
-                                            {% endif %}
-                                        </small>
-                                    </div>
+                                    
                                 </li>
                             {% endfor %}
                         </ul>
@@ -1452,7 +1439,7 @@
             <div class="message-content">${message.content}</div>
             <div class="message-footer">
                 <small class="text-muted">
-                    ${message.timestamp}
+                    
                     ${message.sender === '{{ session.username }}' ? 
                         `<span class="message-status">
                             ${message.is_read ? 
@@ -1487,7 +1474,7 @@
                 });
                 
                 // Check read status for visible messages
-                updateMessageReadStatus();
+                // updateMessageReadStatus();
             });
     }
 
